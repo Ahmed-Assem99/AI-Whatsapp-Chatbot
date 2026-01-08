@@ -1,0 +1,610 @@
+{
+  "name": "How To Build A WhatsApp Chatbot For ANY Business / Website",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Website Scraper",
+        "formDescription": "Enter a website URL to scrape and create an encyclopedia",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Website URL"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b7ec1f69-7fd5-4481-bc66-b4f9d20932f2",
+      "name": "Website Form Submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        80
+      ],
+      "webhookId": "f90f1398-044b-4062-b019-fdb08826a577"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "links",
+        "options": {}
+      },
+      "id": "9eebd37b-f538-4849-9ba6-57788005b855",
+      "name": "Split URLs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        496,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "gallery",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "media",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "uploads",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "27835827-5989-4a23-8a34-d4ee50dd981a",
+      "name": "Filter Media URLs",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "352a8698-c31e-49d9-b3f8-0884e8020783",
+      "name": "Filter Errors",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "data",
+              "renameField": true,
+              "outputFieldName": "allContents"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa65677b-8cf9-4020-8575-a99d057881dd",
+      "name": "Aggregate Contents",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eedeef54-37aa-40a6-ad3c-a79471a46e45",
+              "name": "scraped_website_url",
+              "value": "=website: {{ $('Website Form Submission').item.json['Website URL'] }}\n\n---\n\n{{ $json.allContents.map(item => {\n let result = '';\n  result += 'Page Title: ' + item.metadata.title + '\\n';\n  result += 'Page Description: ' + item.metadata.description + '\\n';\n  result += 'Page URL: ' + item.metadata.url + '\\n\\n';\n\n  result += item.markdown;\n\nreturn result;\n}).join('\\n------\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4889297f-ee6d-4d89-afa7-bd351f3670b7",
+      "name": "Map Encyclopedia Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-2",
+              "name": "encyclopedia",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "34a9b0f5-b6c9-4ccf-8e64-e76beb2e07a2",
+      "name": "Set Final Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "873532982504084",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        80
+      ],
+      "id": "778d9b2a-a920-4bf7-8359-6ae818e99b90",
+      "name": "Send message",
+      "webhookId": "74a61b94-85b0-44fe-b4e7-141125b4c8ec",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8MuHbeT2FODqBdlJ",
+          "name": "WhatsApp account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the virtual concierge for this hotel. You're friendly, helpful, and know everything about the property. When guests ask questions, give them clear, accurate answers based on the information provided. If someone asks something you don't know, politely tell them to contact the front desk. Always end your messages by asking if there's anything else you can help with.\n\n## Your Knowledge Base\n\nBelow this prompt, you have access to a comprehensive encyclopedia containing all information about the business. This encyclopedia includes details.\n\n**IMPORTANT**: Always consult the encyclopedia before answering any question. Base your responses strictly on the information provided in the encyclopedia. If the information is not in the encyclopedia, clearly state that you don't have that specific information and offer to connect them with the hotel staff directly.\n\n## Response Guidelines\n\n### Tone & Style\n- Be warm, professional, and welcoming\n- Write in a conversational, friendly manner (you're chatting on WhatsApp, not writing a formal email)\n- Be concise but thorough - provide complete answers without being overly wordy\n- Use natural language, avoid corporate jargon\n\n### How to Answer Questions\n\n1. **Understand the question** - Identify what the guest is asking\n2. **Search the encyclopedia** - Find relevant information in your knowledge base\n3. **Provide a complete answer** - Address all aspects of their question\n4. **Add helpful context** - Include related information that might be useful\n5. **Offer next steps** - Suggest what they can do next\n\n**When information is missing:**\n- Be honest: \"I don't have specific information about [topic] in my current knowledge base\"\n- Offer alternatives: \"However, I can help you with [related topic], or I can connect you with our team who can provide those details\"\n- Stay helpful\n\n**When questions are out of scope:**\n- Politely redirect: \"That's a great question, but it's outside my area of expertise. Our [specific department] team would be better suited to help with that\"\n- For bookings/reservations: \"I can provide information about our rooms and services, but for actual bookings, I recommend [booking method/contact]\"\n- For emergencies: \"For immediate assistance or urgent matters, please contact the hotel directly at [phone number]\"\n\n### Important Rules\n\n1. **Never make up information** - If it's not in the encyclopedia, don't invent details\n2. **Be accurate with specifics** - use exact information from the encyclopedia\n3. **Maintain privacy** - Never ask for or reference personal information unless necessary for the conversation\n5. **Stay on brand** - Represent the business professionally while being approachable\n6. **Confirm understanding** - If a question is unclear, ask for clarification before answering\n\n## Remember\n\nYou represent the business's first impression for many people. Be helpful, knowledgeable, and genuinely interested in making their experience exceptional. When in doubt, err on the side of providing too much helpful information rather than too little.\n\nYour goal is to answer questions confidently based on the encyclopedia while creating a positive, memorable interaction that makes guests excited about their visit.\n\nUser Message: {{ $json.messages[0].text.body }}\n\n---\n\n## ENCYCLOPEDIA\n\n# The Ritz-Carlton - Complete Encyclopedia\n\n## Overview\nThe Ritz-Carlton is a global luxury hotel and resort brand known for its elegant accommodations, world-class dining, personalized services, and exclusive Club Lounge experiences. Properties span iconic destinations including Maui, Miami, New Orleans, Singapore, Denver, Half Moon Bay, Fort Lauderdale, and the Red Sea, with each location offering tailored amenities to reflect local culture and environment.\n\n---\n\n## Location & Contact\n\n### The Ritz-Carlton Maui, Kapalua  \n**Address:** 1 Ritz-Carlton Drive, Kapalua, Hawaii, USA, 96761  \n**Phone:** +1 808-669-6200 (Toll Free)  \n**Fax:** +1 808-669-1566  \n**Website:** [ritz-carlton.com/maui-kapalua](https://www.ritzcarlton.com/en/hotels/jhmrz-the-ritz-carlton-maui-kapalua)  \n\n### The Ritz-Carlton Coconut Grove, Miami  \n**Address:** 3300 SW 27th Avenue, Miami, Florida, USA, 33133  \n**Phone:** +1 800-542-8680 (Toll Free)  \n**Fax:** +1 305-644-4681  \n**Website:** [ritz-carlton.com/miami-coconut-grove](https://www.ritzcarlton.com/en/hotels/miarz-the-ritz-carlton-coconut-grove-miami)  \n\n### The Ritz-Carlton, New Orleans  \n**Address:** 921 Canal Street, New Orleans, Louisiana, USA, 70112  \n**Phone:** +1 800-542-8680 (Toll Free)  \n**Fax:** +1 504-524-7675  \n**Website:** [ritz-carlton.com/new-orleans](https://www.ritzcarlton.com/en/hotels/msyrz-the-ritz-carlton-new-orleans)  \n\n### The Ritz-Carlton, Millenia Singapore  \n**Address:** Marina Bay, 7 Raffles Avenue, Singapore, 039799  \n**Phone:** +65 6434 5203  \n**Fax:** +65 6338-0001  \n**Website:** [ritz-carlton.com/millenia-singapore](https://www.ritzcarlton.com/en/hotels/sinrz-the-ritz-carlton-millenia-singapore)  \n\n### The Ritz-Carlton, Denver  \n**Address:** 1881 Curtis Street, Denver, Colorado, USA, 80202  \n**Phone:** +1 303-312-3800 (Toll Free)  \n**Fax:** +1 303-312-3801  \n**Website:** [ritz-carlton.com/denver](https://www.ritzcarlton.com/en/hotels/denrz-the-ritz-carlton-denver)   \n\n### The Ritz-Carlton, Half Moon Bay  \n**Address:** 1 Miramontes Point Road, Half Moon Bay, California, USA, 94019  \n**Phone:** +1 888-293-0524 (Toll Free)  \n**Fax:** +1 650-712-7070  \n**Website:** [ritz-carlton.com/half-moon-bay](https://www.ritzcarlton.com/en/hotels/hafrz-the-ritz-carlton-half-moon-bay)  \n\n### The Ritz-Carlton, Fort Lauderdale  \n**Address:** 1 North Fort Lauderdale Beach Boulevard, Fort Lauderdale, Florida, USA, 33304  \n**Phone:** +1 954-465-2300  \n**Fax:** +1 954-465-2340  \n**Website:** [ritz-carlton.com/fort-lauderdale](https://www.ritzcarlton.com/en/hotels/fllrz-the-ritz-carlton-fort-lauderdale)  \n\n### The Ritz-Carlton, Nujuma (Red Sea Reserve)  \n**Address:** Ummahat Islands 2-3, Red Sea, Saudi Arabia  \n**Website:** [ritz-carlton.com/nujuma](https://www.ritzcarlton.com/en/hotels/ejhrz-nujuma-a-ritz-carlton-reserve)  \n\n---\n\n## Hours of Operation (General Highlights)\n- Club Lounges typically open 7:00 AM - 10:00 PM (subject to hotel)  \n- Spa Hours often 9:00 AM - 4:00 or 9:00 AM - 9:00 PM  \n- On-property dining varies per restaurant; see individual listings  \n- Fitness centers commonly open 24/7 for hotel guests  \n\n---\n\n## Accommodations\n\n### Maui, Kapalua  \n- **Deluxe Ocean View Rooms:** 440 sq ft, ocean-view balconies  \n- **Club & Club Ocean View Suites:** 440 sq ft, located on top floors, Club lounge access optional  \n- **Garden / Ocean View Suites:** 900 sq ft, lanai, full kitchen  \n- **Residential Ocean Front Suites:** 1,510 sq ft, lanai, full kitchen  \n- **Fire Lanai Collection:** Rooms with private fire pits  \n- **Royal Pacific Suite:** 2,550 sq ft oceanfront residence with two bedrooms, full kitchen, expansive lanai  \n\nAmenities include **work desks**, **refrigerators**, **coffee/tea makers**, and **hair dryers** in rooms. Some rooms permit **rollaway beds** (policies vary).\n\n### Coconut Grove, Miami  \n- Hotel rooms and suites with balconies offering city or Biscayne Bay views  \n- Suites feature marble bathrooms, separate living/dining areas, some connectable rooms  \n- Some suites have pull-out sofas with Ritz-Carlton bedding  \n- Executive City View Suites can connect with Deluxe rooms for 2-bedroom suites  \n\n### New Orleans  \n- Signature **Maison Orleans Suite**: 900 sq ft, 1 King bed, Club lounge access, elegant design  \n- **The Residence:** Two-bedroom penthouse with dining room, kitchen, fireplaces, private rooftop terrace, Club lounge access included  \n- **The Ritz-Carlton Suite:** 1 King, 1.5 baths, whirlpool, separate living/dining rooms, terrace, Club lounge access included  \n- High-end furnishings, separate rooms for privacy, luxury bedding, and extensive in-room amenities  \n\n### Millenia Singapore  \n- Multiple suites and guest rooms with city and marina bay views  \n- The Celebration Suite accommodates up to 8 guests with exclusive access from 9 AM to 5 PM  \n- Luxurious marble bathrooms and spa services available  \n\n### Denver  \n- Range of modern rooms and suites designed for comfort and work  \n- Club lounge temporarily closed November 1, 2025 - mid-January 2026  \n\n### Half Moon Bay  \n- Oceanfront rooms, suites, Guest Houses with terraces and fire pits  \n- Luxury suites with private kitchen, fireplaces, terraces overlooking the Pacific Ocean  \n- Poolside and golf course views  \n\n### Fort Lauderdale  \n- Ocean-view rooms and suites with balconies  \n- Family-friendly and pet-friendly accommodations available  \n- Club lounge with exclusive services for Club-level guests  \n\n### Nujuma Reserve  \n- Villas and overwater accommodations in a Red Sea island setting  \n- Emphasis on privacy and nature immersion  \n\n---\n\n## Dining Options\n\n### The Ritz-Carlton Maui, Kapalua  \nSix distinctive restaurants and bars:  \n\n#### Banyan Tree  \n- Island-inspired steakhouse with ocean views and living walls  \n- Wed-Sun: 5:00 PM - 9:00 PM; closed Mon-Tue  \n- Casual dress code  \n- Phone: +1 808-669-6200  \n- [Website](https://www.banyantreekapalua.com/)  \n- Features Josper oven cooked meats, seafood specialties  \n\n#### Ulana Terrace  \n- Breakfast and brunch only, overlooking gardens and pool  \n- Mon-Fri: 6:30 AM - 10:30 AM, Sat-Sun: 6:30 AM - 11:00 AM  \n- Casual dress code  \n- Phone: +1 808-665-7089  \n\n#### Burger Shack  \n- Alfresco oceanfront casual dining with signature burgers and shakes  \n- Daily: 11:00 AM - 3:00 PM  \n- Casual dress code  \n- Phone: +1 808-669-6200  \n\n#### Alaloa Lounge  \n- Cocktails, light fare, live entertainment and ocean views  \n- Daily: 3:00 PM - 10:00 PM  \n- Casual dress code  \n\n#### Kai Cafe  \n- Grab-and-go café with pastries, salads, wraps using local ingredients  \n- Daily: 5:30 AM - 3:00 PM  \n- Phone: +1 808-669-6200  \n\n#### Olu Poolside & 'Olu Cafe  \n- Poolside dining with cocktails, pupus, lunch favorites  \n- Olu Poolside: 11:00 AM - 5:00 PM  \n- 'Olu Cafe: 11:00 AM - 4:00 PM  \n- Casual dress code  \n\n#### Luau - Tales of the Kapa Moe  \n- Authentic Hawaiian luau experience with live performances  \n- Open Tue & Fri: 5:30 PM - 8:00 PM; closed other days  \n- Smart casual dress code  \n- [Website](https://www.ritzcarltonmauiluau.com/)  \n\n**Room service:** Available  \n\n---\n\n### The Ritz-Carlton Coconut Grove, Miami  \n\n#### Isabelle's Coconut Grove  \n- Indoor grill and outdoor garden terrace serving seafood and steak  \n- Mon-Thu, Sun: 7:00 AM - 10:00 PM; Fri-Sat: 7:00 AM - 11:00 PM  \n- Smart casual dress code  \n- Phone: +1 305-644-4680  \n- [Website](https://www.isabellescoconutgrove.com/)  \n\n#### Poolside Café  \n- Salads, sandwiches, tropical cocktails poolside  \n- Daily: 11:30 AM - 6:00 PM  \n- Casual dress code  \n\n#### The Commodore  \n- Classic cocktail bar with live music  \n- Mon-Thu, Sun: 5:00 PM - 11:00 PM; Fri-Sat: 5:00 PM - 12:00 AM  \n- Casual dress code  \n\n**Room service:** Available  \n\n---\n\n### The Ritz-Carlton, New Orleans\n\n#### M Bistro  \n- Farm-to-table Louisiana cuisine (shrimp & grits, bouillabaisse)  \n- Breakfast buffet Sat & Sun: 7:00 AM - 12:00 PM  \n- Hours: 7:00 AM - 2:00 PM, 5:30 PM - 10:00 PM daily  \n- Smart casual dress code  \n- Phone: +1 504-670-2828  \n\n#### Davenport Lounge  \n- Cocktails with live jazz music; resident musician performances  \n- Mon-Thu, Sun: 11:00 AM - 11:00 PM; Fri-Sat: 11:00 AM - 12:00 AM  \n- Afternoon Tea on weekends at 11:00 AM and 2:30 PM  \n\n#### Spa Café  \n- Light fare and afternoon tea adjacent to Spa  \n- Daily: 9:00 AM - 5:00 PM  \n- Casual dress code  \n\n**In-Room Dining:** 24/7  \n\n---\n\n### The Ritz-Carlton, Millenia Singapore  \n\n- Multiple dining experiences available on-site with diverse cuisines  \n- Afternoon Tea and special dining packages available  \n- On-site bars and restaurants with city and Marina Bay views  \n\n---\n\n### The Ritz-Carlton, Denver  \n\n#### ELWAY'S Downtown  \n- Upscale steakhouse serving USDA prime steaks, seafood, cocktails  \n- Hours: 7:00 AM - 9:30 PM daily  \n- Smart casual dress code  \n- Phone: +1 303-312-3107  \n- [Website](https://www.elways.com/downtown-home/)  \n\n#### ELWAY'S Downtown Bar  \n- Spirits, brews, wines, cocktails, daily happy hour  \n- Hours: 2:00 PM - 10:00 PM daily  \n- Casual dress code  \n\n#### First Light at Elway's  \n- Grab-and-go offering breakfast items  \n- Hours: 6:00 AM - 10:00 AM daily  \n\n**In-Room Dining:** Available  \n\n---\n\n### The Ritz-Carlton, Half Moon Bay  \n\n- Coastal dining options including Navio with fresh seafood and farm-to-table cuisine  \n- Al fresco dining on Ocean Terrace, private dining rooms  \n- Oceanfront and garden views from guest rooms and suites  \n- Multiple event and meeting spaces, including ballrooms and terraces  \n\n---\n\n### The Ritz-Carlton, Fort Lauderdale  \n\n#### Burlock Coast Seafare & Spirits  \n- Prohibition-era-inspired cocktails, farm-to-table cuisine  \n- Hours: Mon-Thu, Sun: 7:00 AM-11:30 AM, 11:30 AM-4:00 PM, 5:00 PM-9:00 PM; Fri-Sat slight variations  \n- Casual dress code  \n- Phone: +1 954-302-6460  \n- [Website](https://www.burlockcoast.com/)  \n\n#### Sea la Vie Sundeck  \n- Pool deck dining with tropical drinks and light bites, ocean views  \n- Daily: 11:00 AM - 5:00 PM  \n- Casual dress code  \n\n**In-Room Dining:** Daily, 7:00 AM - 10:00 PM  \n\n---\n\n## Club Lounges and Exclusive Experiences\n\n### The Ritz-Carlton Club Experience (General)  \n- Exclusive access through upgraded room bookings  \n- Dedicated concierge services for Club guests  \n- Private lounges offering culinary presentations: breakfast, light lunch, snacks, cocktails, desserts  \n- Personalized services and amenities in-room and on property  \n\n### New Orleans  \n- Maison Orleans Club Level includes private concierge, lounge with salon, library, seating areas, media  \n- Club Lounge offers complimentary food, cocktails, and beverages throughout the day  \n\n### Maui, Kapalua  \n- Club Lounge open daily 7:00 AM - 8:00 PM  \n- Includes hot buffet, snacks, coffee, tea, hors d'oeuvres, beer, wine, cocktails  \n- Dedicated outdoor space, free Wi-Fi, business services  \n\n### Fort Lauderdale  \n- Exclusive Club Lounge for guests with Club-level accommodations  \n- Personalized service, curated dining offerings, ocean views  \n\n### Denver  \n- Club Lounge temporarily closed Nov 1, 2025 - mid-Jan 2026  \n\n---\n\n## Spa & Wellness\n\n### The Ritz-Carlton Maui, Kapalua Spa  \n- 17,500 sq ft with 15 treatment rooms, including outdoor shower gardens and couples' cabanas  \n- Spa hours: Daily 9:00 AM - 4:00 PM (appointment required)  \n- Treatments feature Hawaiian botanicals and traditional rituals: massages, facials, body wraps, men’s services  \n- Fitness center open 24/7 with Technogym, Peloton, Tonal equipment, mind/body fitness classes (Yoga, Pilates, Core, Hikes)  \n- Spa policies include age restrictions (18+ for massages/facials), cancellation requirements, gratuities at 22% service charge  \n\n### The Ritz-Carlton Coconut Grove, Miami  \n- Spa services available (details vary per location)  \n- Fitness center and pool facilities  \n\n### The Ritz-Carlton, New Orleans Spa  \n- Signature treatments available focusing on Louisiana natural ingredients  \n- Separate men’s and women’s lounges, massage, and beauty services  \n\n### The Ritz-Carlton, Millenia Singapore Spa  \n- Body scrubs, wraps, facials, massages, men’s services  \n- Facilities include plunge pool, steam room, sauna, separate men’s and women’s lounges  \n- Spa hours: Daily 9:00 AM - 9:00 PM (appointment required)  \n\n### The Ritz-Carlton, Fort Lauderdale Spa  \n- Ocean-inspired treatments featuring citrus, sea minerals, detoxifying rituals  \n- Spa hours with temporary adjustments: Sep 16 - Oct 28, Mon-Thu 10:00 AM - 3:00 PM, Fri-Sat 9:00 AM - 5:00 PM, Sun 9:00 AM - 3:00 PM  \n- Fitness center open 24/7 with strength and cardio equipment including Pelotons  \n\n---\n\n## Golf\n\n### Kapalua Golf, Maui  \n- Plantation Course: 18 holes, 7,411 yards, Par 73, designed by Ben Crenshaw & Bill Coore  \n- Bay Course: 18 holes, 6,600 yards, Par 72, designed by Arnold Palmer & Francis Duane  \n- Contact: +1 808-669-8044  \n- Address: 2000 Plantation Club Drive, Lahaina, Hawaii, 96761  \n- Tee time reservation available online  \n\n### Grande Oaks Golf Course, Fort Lauderdale  \n- Private, members-only, Par 71, 6,680 yards  \n- Exclusive Ritz-Carlton guest privileges including personal locker and professional golf attendant  \n- Closed Mondays; weekend tee times honored after noon  \n- Contact: +1 954-916-2900  \n\n### Other Golf Near Millenia Singapore  \n- The Par Club, Sentosa Golf Club, Singapore Island Country Club, Laguna Golf & Country Club, Orchid Country Club Golf Driving Range  \n\n---\n\n## Events & Meetings\n\n- Elegant private dining and event spaces available at multiple properties including Fort Lauderdale, New Orleans, Denver, Half Moon Bay  \n- Facilities accommodate small private parties to large weddings and corporate events  \n- Specialized packages for weddings, holiday celebrations, golf outings, and VIP experiences  \n- Concierge assistance available for event planning and reservations  \n\n---\n\n## Policies & Information\n\n### Club Access  \n- Club Lounge access requires upgraded booking or Club-level rooms/suites  \n- Marriott Bonvoy Elite Status does NOT guarantee complimentary Club access  \n\n### Room Service  \n- Available 24/7 at most properties  \n\n### Pets (Fort Lauderdale Example)  \n- Pets allowed, max 25 lbs per room  \n- Non-refundable fee: $150 per stay  \n- Max 2 pets per room  \n\n### Check-In/Check-Out (Fort Lauderdale example)  \n- Check-in: 4:00 PM  \n- Check-out: 11:00 AM  \n- Minimum check-in age: 21  \n\n### Parking (Fort Lauderdale example)  \n- Valet parking $59 daily  \n- Self-parking $29 day, $59 overnight  \n- Electric Car Charging Stations available  \n\n---\n\n## Booking & Reservations\n\n- Reservations for rooms, suites, Club Lounge access, dining, spa, golf, and events can be made via official Ritz-Carlton websites or direct phone numbers  \n- Dining reservations often available through OpenTable or SevenRooms with direct links provided per restaurant  \n- Spa and fitness appointments generally require prior booking and may require cancellation notice to avoid fees  \n\n---\n\n## Summary of Key On-Property Restaurants by Location\n\n| Location                     | Restaurant Name(s)                                           | Cuisine Type                    | Operating Hours                             | Phone              | Reservation Link                                   |\n|------------------------------|-------------------------------------------------------------|--------------------------------|---------------------------------------------|--------------------|--------------------------------------------------|\n| Maui, Kapalua                | Banyan Tree                                                 | American, Island-inspired       | Wed-Sun 5pm-9pm; closed Mon-Tue              | +1 808-669-6200    | [Banyan Tree](http://www.opentable.com/restaurant/profile/158614) |\n|                              | Ulana Terrace                                              | Breakfast                      | Mon-Fri 6:30am-10:30am; Sat-Sun 6:30am-11am | +1 808-665-7089    | [Ulana Terrace](http://www.opentable.com/restaurant/profile/1016842) |\n|                              | Burger Shack                                              | American, Casual                | Daily 11am-3pm                              | +1 808-669-6200    | -                                                |\n|                              | Alaloa Lounge                                            | Light fare, cocktails          | Daily 3pm-10pm                              | -                  | -                                                |\n|                              | Kai Cafe                                                 | Café                          | Daily 5:30am-3pm                            | +1 808-669-6200    | -                                                |\n|                              | Olu Poolside / 'Olu Cafe                                 | American, Poolside dining      | Daily 11am-5pm ('Olu Poolside), 11am-4pm ('Olu Cafe) | -            | -                                                |\n|                              | Luau - Tales of the Kapa Moe                            | Luau, Hawaiian                  | Tue & Fri 5:30pm-8pm; closed others         | -                  | [Luau Book](https://fareharbor.com/embeds/book/ritzcarltonmauiluau/items) |\n| Coconut Grove, Miami         | Isabelle's Coconut Grove                                  | Eclectic, Steak & Seafood     | Mon-Thu, Sun 7am-10pm; Fri-Sat 7am-11pm    | +1 305-644-4680    | [Isabelle's](https://www.sevenrooms.com/reservations/isabellescoconutgrove) |\n|                              | Poolside Café                                            | American                      | Daily 11:30am-6pm                           | +1 305-644-4680    | [Poolside Café](https://www.sevenrooms.com/reservations/isabellescoconutgrove) |\n|                              | The Commodore                                           | Cocktail Bar                  | Mon-Thu, Sun 5pm-11pm; Fri-Sat 5pm-12am    | +1 305-644-4680    | -                                                |\n| New Orleans                  | M Bistro                                                | Eclectic, Louisiana farm-to-table | Daily 7am-2pm, 5:30pm-10pm                | +1 504-670-2828    | [M Bistro](https://www.opentable.com/m-bistro)   |\n|                              | Davenport Lounge                                        | Lounge, Cocktails             | Mon-Thu, Sun 11am-11pm; Fri-Sat 11am-12am  | +1 504-670-2828    | -                                                |\n|                              | Spa Café                                               | Light fare                   | Daily 9am-5pm                              | +1 504-670-2929    | -                                                |\n| Denver                       | ELWAY'S Downtown                                       | Steakhouse                   | Daily 7am-9:30pm                           | +1 303-312-3107    | [Elway's Downtown](http://www.opentable.com/restaurant/profile/17269) |\n|                              | ELWAY'S Downtown Bar                                  | Bar, Spirits                 | Daily 2pm-10pm                            | +1 303-312-3107    | -                                                |\n|                              | First Light at Elway's                                | Grab & go breakfast          | Daily 6am-10am                            | +1 303-312-3107    | -                                                |\n| Half Moon Bay                | Navio                                                 | Seafood, Farm-to-table      | Hours vary                              | -                  | -                                                |\n| Fort Lauderdale              | Burlock Coast Seafare & Spirits                      | English, Farm-to-table      | Mon-Thu, Sun 7am-11:30am, 11:30am-4pm, 5pm-9pm; Fri-Sat 7am-11:30am, 12pm-4pm, 5pm-10pm  | +1 954-302-6460 | [Burlock Coast](http://www.opentable.com/restaurant/profile/12976) |\n|                              | Sea la Vie Sundeck                                   | American, Poolside          | Daily 11am-5pm                          | +1 954-465-2340    | -                                                |\n\n---\n\n## Amenities & Services\n\n### General Amenities Across Locations\n- Luxury accommodations with oceanfront, city, marina, or golf course views  \n- Club Lounge access with personalized service, culinary presentations, and exclusive lounges  \n- Spa facilities featuring massages, facials, body treatments, men’s and kids services, steam rooms, saunas, and separate lounges  \n- Fitness centers with cardiovascular and strength equipment, studio classes, Peloton bikes, yoga  \n- Swimming pools – heated and outdoor; whirlpools and children’s pools available at select locations  \n- Golf at prestigious nearby or on-site courses with guest privileges and lessons  \n- Room service available 24/7 or as specified  \n- Business services available on request  \n\n### Unique Amenities & Offerings\n\n#### Maui  \n- Fire Lanai Collection with private fire pits  \n- Banyan Tree’s Josper oven specialties  \n- Luau experience with authentic Hawaiian dance and cuisine  \n\n#### New Orleans  \n- Maison Orleans Club Level with dedicated concierge and private lounges  \n- Event spaces for weddings, meetings, banquets, and private dining including wine and music experiences  \n\n#### Fort Lauderdale  \n- Beachfront location with ocean-view cabanas and poolside private services  \n- Seasonal holiday events with curated menus and entertainment  \n\n---\n\n## Transportation & Access\n\n### Fort Lauderdale  \n- Closest airport: Fort Lauderdale-Hollywood International Airport (FLL), 7 miles from hotel  \n- Miami International Airport 45 miles away  \n- Palm Beach International Airport 47 miles away  \n- No hotel shuttle service; alternative transports available at fees with reservation  \n- Nearby bus, subway, and train station options listed  \n\n### Maui  \n- Contact golf reservations and local transportation via hotel  \n- No specific shuttle services detailed  \n\n### Singapore  \n- Nearby attractions within walking distance or short taxi rides  \n- No shuttle information provided  \n\n---\n\n## Policies\n\n### Club Lounge Access  \n- Requires booking Club-level room or suite  \n- Not automatically granted to Marriott Bonvoy Elite members  \n- Club lounge offerings include daily culinary presentations and beverage service  \n\n### Spa Age Restrictions  \n- Spa areas open to guests 18+ for massages and treatments  \n- Salon services available for children 5+ with parental supervision  \n- Fitness center access restricted to guests 18+, younger guests require guardian supervision  \n\n### Cancellation Policies  \n- Vary by spa and service type; generally require 6-hour to 72-hour notice  \n- Late arrivals limit treatment duration without fee reduction  \n- Credit card required for bookings and holds  \n\n### Pet Policy (Fort Lauderdale)  \n- Allowed up to 25 lbs, max 2 pets per room  \n- Non-refundable fee USD 150 per stay  \n\n### Check-In / Check-Out (Example: Fort Lauderdale)  \n- Check-in: 4:00 PM  \n- Check-out: 11:00 AM  \n- Minimum age to check-in: 21  \n\n---\n\n## Frequently Asked Questions\n\n### Common Questions About Dining  \n- **Restaurants on property:** Each hotel offers a unique set of dining venues (see Dining Options)  \n- **Cuisine types:** Range from American and steakhouse to Chinese, Italian, eclectic and local specialties  \n- **Room service:** Generally available 24/7 at all hotels  \n- **Complimentary breakfast:** Typically not provided; see on-site dining options for breakfast  \n\n### Common Questions About Rooms  \n- **Work spaces:** Most rooms include desks for work  \n- **Largest occupancy rooms:** Vary by property; Maui and New Orleans offer suites for up to 6 guests  \n- **Rollaway beds:** Allowed in some rooms with fees; policies vary  \n- **In-room amenities:** Fridges, coffee/tea makers, hair dryers provided  \n\n### Booking Recommendations  \n- Dining reservations recommended via provided links or hotel phone numbers  \n- Spa and golf services require advance booking  \n- Club access upgrades available on room bookings  \n\n---\n\n## Notable Local Attractions Near Key Properties\n\n### Maui  \n- Kapalua Beach and surrounding natural landscapes  \n\n### Miami Coconut Grove  \n- Coral Gables, Coconut Grove shopping and cultural venues  \n\n### New Orleans  \n- French Quarter, Canal Street, historic sites  \n\n### Singapore  \n- Marina Bay Sands, Gardens by the Bay, Singapore Flyer, ArtScience Museum, Esplanade, Sentosa Island, Singapore Zoo  \n\n### Denver  \n- Downtown Denver arts and cultural districts  \n\n### Half Moon Bay  \n- Pacific coastline, coastal trails, golf courses  \n\n### Fort Lauderdale  \n- Las Olas Boulevard, Everglades National Park, Broward Center for Performing Arts  \n\n---\n\nThis encyclopedia synthesizes essential information about The Ritz-Carlton brand properties and services, structured to provide rapid and comprehensive answers to customer inquiries.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        80
+      ],
+      "id": "df3c4fef-9ac4-4540-9af2-6acf8df5c13c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        624
+      ],
+      "id": "6514250d-b029-4928-a813-2eaf909a7848",
+      "name": "OpenAI 4.1 mini",
+      "credentials": {
+        "openRouterApi": {
+          "id": "dmN6125867vxfrbR",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        624
+      ],
+      "id": "8ecf0086-fdaa-4aad-a909-684f292760ac",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.metadata.phone_number_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1424,
+        624
+      ],
+      "id": "1ee6a28a-be53-4db0-8ddc-f4bb542d2c4b",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "map",
+        "url": "={{ $json['Website URL'] }}",
+        "limit": 200,
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        272,
+        80
+      ],
+      "id": "f4c78f72-ec4b-44c9-b377-e31d18074738",
+      "name": "Map Website",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "L8iMHcw0v4pJjrAm",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.url }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {}
+              ]
+            },
+            "headers": {}
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        288,
+        304
+      ],
+      "id": "0677e417-1061-45a5-8198-a710b2ac2c7b",
+      "name": "Scrape Content",
+      "executeOnce": false,
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "firecrawlApi": {
+          "id": "L8iMHcw0v4pJjrAm",
+          "name": "Firecrawl account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.scraped_website_url }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert technical writer specializing in creating comprehensive, well-structured business encyclopedias from web-scraped content.\n\n## Your Mission\n\nTransform raw scraped website content into a clear, organized, and easily searchable encyclopedia that will serve as a knowledge base for AI agents answering customer questions.\n\n## Input Format\n\nYou will receive:\n- Website URL\n- Multiple pages of scraped content, each containing:\n  - Page Title\n  - Page Description\n  - Page URL\n  - Full markdown content from that page\n\n## Output Format\n\nCreate a well-structured encyclopedia in markdown format with the following characteristics:\n\n### Structure Requirements\n\n1. **Hierarchy and Organization**\n   - Start with a master header indicating the business/website name\n   - Organize content by logical categories (e.g., Services, Products, Rooms, Amenities, Pricing, Location, Contact)\n   - Use clear H2 headers (##) for main sections\n   - Use H3 headers (###) for subsections\n   - Use H4 headers (####) for specific items or details\n\n2. **Content Processing**\n   - **Consolidate duplicate information**: If the same information appears across multiple pages, synthesize it into one authoritative entry\n   - **Preserve specificity**: Keep exact details like prices, times, room names, menu items, addresses, phone numbers\n   - **Remove navigation elements**: Strip out headers, footers, navigation menus, and repetitive site elements\n   - **Maintain context**: Keep enough context so each section can be understood independently\n   - **Extract key facts**: Pull out crucial details like hours of operation, contact information, pricing, specifications\n\n3. **Formatting Standards**\n   - Use **bold** for important terms, names, and key information\n   - Use bullet points for lists of features, amenities, or options\n   - Use tables for structured data (pricing tiers, schedules, comparisons)\n   - Include relevant URLs only when they provide additional value (booking links, specific resource pages)\n   - Keep paragraphs concise (2-4 sentences max)\n\n4. **Information Architecture**\n   - Group related information together\n   - Create clear information hierarchies\n   - Use consistent naming conventions\n   - Add cross-references where relevant (e.g., \"See also: Dining Options\")\n\n### Content Quality Standards\n\n1. **Clarity**\n   - Write in clear, professional language\n   - Define any industry-specific terms on first use\n   - Use active voice\n   - Avoid marketing fluff; focus on factual information\n\n2. **Completeness**\n   - Include all relevant business information\n   - Don't omit details, even if they seem minor\n   - Preserve specific names, numbers, and specifications\n   - Keep seasonal or time-limited information with appropriate context\n\n3. **Accuracy**\n   - Maintain factual accuracy from source material\n   - Don't infer or assume information not present in the source\n   - Preserve exact terminology used by the business\n   - If information conflicts across pages, include both with source context\n\n4. **Searchability**\n   - Use descriptive headers that match likely customer questions\n   - Include common synonyms and alternative phrasings\n   - Add location-specific keywords where relevant\n   - Structure content so AI agents can quickly find relevant sections\n\n### Example Structure\n\n```markdown\n# [Business Name] - Complete Encyclopedia\n\n## Overview\n[Brief summary of the business, location, and primary offerings]\n\n## Location & Contact\n### Address\n[Full address with landmarks if mentioned]\n\n### Contact Information\n- **Phone**: [number]\n- **Email**: [email]\n- **Website**: [url]\n\n### Hours of Operation\n[Operating hours, special schedules]\n\n## [Main Category 1 - e.g., Rooms & Accommodations]\n### [Specific Item 1]\n**Description**: [Clear description]\n**Features**:\n- [Feature 1]\n- [Feature 2]\n\n**Pricing**: [Pricing information if available]\n**Capacity**: [Capacity if applicable]\n\n### [Specific Item 2]\n[Follow same structure]\n\n## [Main Category 2 - e.g., Dining Options]\n### [Restaurant/Service Name]\n**Type**: [Cuisine type, service style]\n**Location**: [Where on property]\n**Hours**: [Operating hours]\n**Menu Highlights**:\n- [Item 1]: [Description and price]\n- [Item 2]: [Description and price]\n\n## [Main Category 3 - e.g., Amenities & Services]\n### [Service Category]\n- **[Specific Service]**: [Description, availability, pricing]\n\n## Policies & Information\n### Booking & Reservations\n[Relevant policies]\n\n### Transportation & Access\n[How to reach the location, parking, shuttle services]\n\n### Special Offerings\n[Packages, promotions, seasonal offerings]\n```\n\n## Processing Guidelines\n\n1. **Read all source material first** before creating the encyclopedia\n2. **Identify main themes and categories** across all pages\n3. **Consolidate redundant information** - don't repeat the same details multiple times\n4. **Prioritize customer-facing information** over internal/technical details\n5. **Maintain source attribution** only for direct quotes or specific claims\n6. **Preserve proper nouns** exactly as they appear (room names, menu items, location names)\n7. **Extract actionable information** that helps answer: What? Where? When? How much? How to?\n\n## What to Exclude\n\n- Generic marketing language without specific information\n- Repetitive calls-to-action (\"Book now!\", \"Contact us today!\")\n- Website navigation elements\n- Legal disclaimers (unless specifically relevant to services)\n- Cookie notices and privacy policies\n- Social media links (unless part of contact information)\n- Broken or placeholder content\n- Pure decorative text\n\n## Final Quality Check\n\nBefore outputting, verify:\n- [ ] All major sections from the website are represented\n- [ ] Information is logically organized\n- [ ] Duplicate content has been consolidated\n- [ ] Specific details (prices, times, names) are preserved\n- [ ] Headers are descriptive and scannable\n- [ ] Content flows naturally and is easy to navigate\n- [ ] An AI agent could quickly find answers to common questions\n\n## Output Instructions\n\nProvide ONLY the formatted encyclopedia content in markdown. Do not include:\n- Meta-commentary about the process\n- Explanations of what you did\n- Warnings or disclaimers\n- Source URLs unless they add value to the content\n\nBegin the encyclopedia immediately with the business name header."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        496,
+        512
+      ],
+      "id": "7debe85a-3c84-47ad-a9d0-3b5eccc19ecd",
+      "name": "Structure Data Formatter"
+    },
+    {
+      "parameters": {
+        "content": "## Website Scraper and Encyclopedia",
+        "height": 688,
+        "width": 992,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "112bc453-7a5d-491f-b956-fc2757218aac",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 176,
+        "width": 496,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        576
+      ],
+      "typeVersion": 1,
+      "id": "25af0016-9cb4-4971-8188-1cbf45cd001a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## WhatsApp Chatbot",
+        "height": 256,
+        "width": 752,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1072,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "ad5d5783-4e1f-4163-b0f5-04026cfcbda4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        80
+      ],
+      "id": "1b30e348-9004-42f1-b6d2-5bc1f7f92a04",
+      "name": "WhatsApp Trigger",
+      "webhookId": "48be9944-2fe2-40fc-9040-e9ee0710b2ad",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "echyFNvpyHOFK385",
+          "name": "WhatsApp OAuth account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Website Form Submission": [
+      {
+        "json": {
+          "Website URL": "https://www.ritzcarlton.com/",
+          "submittedAt": "2025-10-31T08:08:55.572+01:00",
+          "formMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Website Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Map Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split URLs": {
+      "main": [
+        [
+          {
+            "node": "Filter Media URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Media URLs": {
+      "main": [
+        [
+          {
+            "node": "Scrape Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Errors": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Contents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Contents": {
+      "main": [
+        [
+          {
+            "node": "Map Encyclopedia Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Encyclopedia Data": {
+      "main": [
+        [
+          {
+            "node": "Structure Data Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI 4.1 mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structure Data Formatter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Website": {
+      "main": [
+        [
+          {
+            "node": "Split URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Content": {
+      "main": [
+        [
+          {
+            "node": "Filter Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Data Formatter": {
+      "main": [
+        [
+          {
+            "node": "Set Final Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f7be7af7-4940-4c80-aed5-3afc19a4998a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2baf34c010bba56e1fc9c05b0e3469be88ef539db09a83b806a10cd72e1b340c"
+  },
+  "id": "SQxQAlronzJZGoOs",
+  "tags": []
+}
